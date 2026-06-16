@@ -1,0 +1,105 @@
+{
+  "info": {
+    "name": "Lead & Form Automation Hub",
+    "description": "Tally → Airtable / Discord / Google Sheets fanout API. See docs/API_REFERENCE.md for full schema details.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "eventId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "POST /webhooks/simulate",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane@example.com\",\n  \"company\": \"Acme Corp\",\n  \"message\": \"Interested in a demo.\"\n}"
+            },
+            "url": "{{baseUrl}}/webhooks/simulate"
+          }
+        },
+        {
+          "name": "POST /webhooks/tally (manual, no signature)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              {
+                "key": "tally-signature",
+                "value": "",
+                "description": "Required if TALLY_SIGNING_SECRET is set on the server. Leave blank for local dev where the secret is unset."
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"evt_manual_test\",\n  \"createdAt\": \"2026-06-16T12:00:00.000Z\",\n  \"data\": {\n    \"responseId\": \"resp_manual_test\",\n    \"submissionId\": \"sub_manual_test\",\n    \"respondentId\": \"respondent_manual_test\",\n    \"formId\": \"form_manual_test\",\n    \"formName\": \"Lead Capture\",\n    \"fields\": [\n      { \"key\": \"q1\", \"label\": \"Name\", \"type\": \"INPUT_TEXT\", \"value\": \"Test User\" },\n      { \"key\": \"q2\", \"label\": \"Email\", \"type\": \"INPUT_EMAIL\", \"value\": \"test@example.com\" },\n      { \"key\": \"q3\", \"label\": \"Company\", \"type\": \"INPUT_TEXT\", \"value\": \"Test Co\" },\n      { \"key\": \"q4\", \"label\": \"Message\", \"type\": \"TEXTAREA\", \"value\": \"Manual Postman test.\" }\n    ]\n  }\n}"
+            },
+            "url": "{{baseUrl}}/webhooks/tally",
+            "description": "Only works if TALLY_SIGNING_SECRET is unset on the server (dev mode skips verification). Against a configured server this will 401 without a valid HMAC signature."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "item": [
+        {
+          "name": "GET /events",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/events?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["events"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /events/stats",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/events/stats"
+          }
+        },
+        {
+          "name": "GET /events/:id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/events/{{eventId}}",
+            "description": "Set the eventId collection variable to a submission _id returned from GET /events."
+          }
+        },
+        {
+          "name": "POST /events/:id/retry",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/events/{{eventId}}/retry",
+            "description": "Retries only destinations currently marked 'failed' on this submission. Returns 400 if none are failed."
+          }
+        }
+      ]
+    }
+  ]
+}

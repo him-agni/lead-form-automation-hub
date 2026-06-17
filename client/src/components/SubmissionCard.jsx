@@ -22,8 +22,29 @@ const DEST_ICONS = {
   sheets: '🟢',
 };
 
+function maskFieldValue(key, value) {
+  const label = key.toLowerCase();
+  const text = String(value ?? '—');
+
+  if (label.includes('email')) {
+    const [name, domain] = text.split('@');
+    if (!domain) return '••••';
+    return `${name.slice(0, 2)}•••@${domain}`;
+  }
+
+  if (label.includes('phone') || label.includes('mobile')) {
+    return text.replace(/\d(?=\d{2})/g, '•');
+  }
+
+  if (label.includes('message') || label.includes('notes')) {
+    return text.length > 24 ? `${text.slice(0, 24)}...` : text;
+  }
+
+  return text;
+}
+
 export default function SubmissionCard({ submission }) {
-  const { mutate: retry, isPending } = useRetryEvent();
+  const { mutate: retry, isPending, isError, error } = useRetryEvent();
   const fields = submission.fields ? Object.entries(submission.fields) : [];
   const hasFailed = submission.destinations?.some(d => d.status === 'failed');
 
@@ -56,7 +77,7 @@ export default function SubmissionCard({ submission }) {
           {fields.slice(0, 6).map(([k, v]) => (
             <div key={k} className="text-xs">
               <span className="text-gray-500">{k}: </span>
-              <span className="text-gray-200 truncate">{String(v ?? '—')}</span>
+              <span className="text-gray-200 truncate">{maskFieldValue(k, v)}</span>
             </div>
           ))}
         </div>
@@ -95,6 +116,11 @@ export default function SubmissionCard({ submission }) {
         >
           {isPending ? 'Retrying...' : 'Retry Failed Destinations'}
         </button>
+      )}
+      {isError && (
+        <p className="text-xs text-red-300">
+          {error?.response?.data?.error || error?.message || 'Retry failed'}
+        </p>
       )}
     </div>
   );

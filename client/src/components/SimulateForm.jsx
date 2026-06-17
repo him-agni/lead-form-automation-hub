@@ -11,7 +11,7 @@ const defaults = {
 export default function SimulateForm() {
   const [form, setForm] = useState(defaults);
   const [sent, setSent] = useState(false);
-  const { mutate: simulate, isPending } = useSimulate();
+  const { mutate: simulate, isPending, isError, error } = useSimulate();
 
   const handleChange = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
@@ -67,6 +67,11 @@ export default function SimulateForm() {
         >
           {isPending ? 'Sending...' : sent ? 'Sent! Check the feed' : 'Fire Test Submission'}
         </button>
+        {isError && (
+          <p className="text-xs text-red-300">
+            {error?.response?.data?.error || error?.message || 'Failed to send test submission'}
+          </p>
+        )}
       </form>
     </div>
   );

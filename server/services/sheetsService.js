@@ -8,6 +8,21 @@ function getAuthClient() {
   });
 }
 
+async function submissionAlreadyLogged(sheets, spreadsheetId, submissionId) {
+  const existing = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: 'Sheet1!B:B',
+  });
+
+  const rows = existing.data.values || [];
+  return rows.some(row => row[0] === submissionId);
+}
+
+function sanitizeForSheets(value) {
+  const text = String(value ?? '');
+  return /^[=+\-@]/.test(text) ? `'${text}` : text;
+}
+
 /**
  * Appends a row to the configured Google Sheet.
  * Columns: Timestamp | Submission ID | Name | Email | Company | Message
@@ -17,6 +32,11 @@ function getAuthClient() {
 async function appendRow(fields, submissionId) {
   const auth = getAuthClient();
   const sheets = google.sheets({ version: 'v4', auth });
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+
+  if (await submissionAlreadyLogged(sheets, spreadsheetId, submissionId)) {
+    return submissionId;
+  }
 
   const values = [
     new Date().toISOString(),
@@ -25,12 +45,12 @@ async function appendRow(fields, submissionId) {
     fields['Email'] || fields['Email Address'] || '',
     fields['Company'] || fields['Company Name'] || '',
     fields['Message'] || fields['Notes'] || '',
-  ];
+  ].map(sanitizeForSheets);
 
   await sheets.spreadsheets.values.append({
-    spreadsheetId: process.env.GOOGLE_SHEET_ID,
+    spreadsheetId,
     range: 'Sheet1!A:F',
-    valueInputOption: 'USER_ENTERED',
+    valueInputOption: 'RAW',
     requestBody: { values: [values] },
   });
 }

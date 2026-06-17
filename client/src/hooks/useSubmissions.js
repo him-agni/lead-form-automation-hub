@@ -6,6 +6,8 @@ export function useSubmissions(page = 1) {
     queryKey: ['submissions', page],
     queryFn: () => fetchEvents(page),
     refetchInterval: 5_000, // poll every 5 s so processing → success transitions appear live
+    refetchIntervalInBackground: false,
+    retry: 2,
   });
 }
 
@@ -14,6 +16,8 @@ export function useStats() {
     queryKey: ['stats'],
     queryFn: fetchStats,
     refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
+    retry: 2,
   });
 }
 

@@ -37,6 +37,8 @@ Copy it into `server/.env`:
 TALLY_SIGNING_SECRET=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
+In production, `TALLY_SIGNING_SECRET` must be set. The server only skips signature verification when the secret is missing outside production, which keeps local demos convenient without allowing unsigned production webhooks.
+
 > If you leave this blank, the server still works but logs a warning and skips verification — fine for local demos, not for anything public-facing.
 
 ## 5. How verification works

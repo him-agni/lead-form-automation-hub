@@ -4,6 +4,16 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
 });
 
+api.interceptors.request.use(config => {
+  const dashboardApiKey = import.meta.env.VITE_DASHBOARD_API_KEY;
+
+  if (dashboardApiKey) {
+    config.headers.Authorization = `Bearer ${dashboardApiKey}`;
+  }
+
+  return config;
+});
+
 export const fetchEvents = (page = 1) =>
   api.get(`/events?page=${page}&limit=20`).then(r => r.data);
 

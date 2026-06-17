@@ -2,12 +2,17 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const { validateEnv } = require('./config/env');
 
 const webhookRoutes = require('./routes/webhookRoutes');
 const eventRoutes = require('./routes/eventRoutes');
+const errorHandler = require('./middleware/errorHandler');
+const { recoverProcessingSubmissions } = require('./services/fanoutService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+validateEnv();
 
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
 
@@ -15,7 +20,7 @@ app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
 // (the webhook route uses express.raw() at the route level to preserve raw body for HMAC)
 app.use((req, res, next) => {
   if (req.path === '/webhooks/tally') return next();
-  express.json()(req, res, next);
+  express.json({ limit: '64kb' })(req, res, next);
 });
 
 app.use('/webhooks', webhookRoutes);
@@ -23,11 +28,18 @@ app.use('/events', eventRoutes);
 
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 
+app.use(errorHandler);
+
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('[server] MongoDB connected');
-    app.listen(PORT, () => console.log(`[server] Listening on http://localhost:${PORT}`));
+    app.listen(PORT, () => {
+      console.log(`[server] Listening on http://localhost:${PORT}`);
+      recoverProcessingSubmissions().catch(err =>
+        console.error('[server] Processing recovery failed:', err.message)
+      );
+    });
   })
   .catch(err => {
     console.error('[server] MongoDB connection failed:', err.message);

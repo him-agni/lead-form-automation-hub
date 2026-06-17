@@ -1,10 +1,20 @@
 const Submission = require('../models/Submission');
 const { retryFailed } = require('../services/fanoutService');
+const mongoose = require('mongoose');
+
+function validateObjectId(id) {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    const err = new Error('Invalid event id');
+    err.statusCode = 400;
+    throw err;
+  }
+}
 
 /** GET /events — paginated list of submissions, newest first */
 async function listEvents(req, res) {
   const page = Math.max(parseInt(req.query.page) || 1, 1);
-  const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+  const parsedLimit = parseInt(req.query.limit) || 20;
+  const limit = Math.min(Math.max(parsedLimit, 1), 100);
 
   const [submissions, total] = await Promise.all([
     Submission.find()
@@ -20,6 +30,8 @@ async function listEvents(req, res) {
 
 /** GET /events/:id — single submission detail */
 async function getEvent(req, res) {
+  validateObjectId(req.params.id);
+
   const submission = await Submission.findById(req.params.id).lean();
   if (!submission) return res.status(404).json({ error: 'Not found' });
   res.json(submission);
@@ -27,6 +39,8 @@ async function getEvent(req, res) {
 
 /** POST /events/:id/retry — retry only failed destinations */
 async function retryEvent(req, res) {
+  validateObjectId(req.params.id);
+
   const submission = await Submission.findById(req.params.id);
   if (!submission) return res.status(404).json({ error: 'Not found' });
 

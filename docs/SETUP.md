@@ -23,6 +23,8 @@ Copy the template and fill in real values:
 cp .env.example server/.env
 ```
 
+Set `DASHBOARD_API_KEY` in `server/.env` to a long random value. Then create `client/.env` from `client/.env.example` and set `VITE_DASHBOARD_API_KEY` to the same value so the dashboard can call protected endpoints.
+
 Each integration has its own setup doc — work through them in this order, since later steps depend on earlier ones:
 
 1. [AIRTABLE_SETUP.md](./AIRTABLE_SETUP.md) — create the base/table, get your API key

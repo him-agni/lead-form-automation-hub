@@ -2,6 +2,16 @@
 
 Base URL (local): `http://localhost:5000`
 
+## Authentication
+
+Dashboard-facing endpoints require an API key when `DASHBOARD_API_KEY` is configured on the server:
+
+```http
+Authorization: Bearer <DASHBOARD_API_KEY>
+```
+
+This applies to `POST /webhooks/simulate` and all `/events` endpoints. The real Tally webhook uses Tally signature verification instead.
+
 ## Webhooks
 
 ### `POST /webhooks/tally`
@@ -34,6 +44,8 @@ The fanout to Airtable/Discord/Sheets runs asynchronously after this response is
 
 Fires a synthetic submission through the exact same fanout pipeline, bypassing signature verification. Used by the dashboard's "Simulate" panel.
 
+Requires dashboard authentication when `DASHBOARD_API_KEY` is configured.
+
 **Body** (all fields optional — defaults are used if omitted)
 ```json
 {
@@ -52,6 +64,8 @@ Fires a synthetic submission through the exact same fanout pipeline, bypassing s
 ---
 
 ## Events
+
+All `/events` endpoints require dashboard authentication when `DASHBOARD_API_KEY` is configured.
 
 ### `GET /events`
 

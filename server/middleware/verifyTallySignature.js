@@ -13,8 +13,12 @@ const crypto = require('crypto');
 function verifyTallySignature(req, res, next) {
   const signingSecret = process.env.TALLY_SIGNING_SECRET;
 
-  // Skip verification if no secret is configured (dev/demo mode)
+  // Skip verification only in local dev/demo mode.
   if (!signingSecret) {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(500).json({ error: 'Tally signing secret is not configured' });
+    }
+
     console.warn('[webhook] TALLY_SIGNING_SECRET not set — skipping signature check');
     return next();
   }

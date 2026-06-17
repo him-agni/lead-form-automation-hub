@@ -27,6 +27,7 @@ async function sendAlert(fields, submissionId) {
 
   await axios.post(webhookUrl, payload, {
     headers: { 'Content-Type': 'application/json' },
+    timeout: 10_000,
   });
 }
 

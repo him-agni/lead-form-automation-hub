@@ -1,6 +1,32 @@
 const { parseTallyPayload } = require('../services/tallyService');
-const { fanout } = require('../services/fanoutService');
+const { fanout, DESTINATIONS } = require('../services/fanoutService');
 const Submission = require('../models/Submission');
+
+const MAX_SIMULATE_FIELD_LENGTH = 500;
+
+function cleanSimulateValue(value, fallback) {
+  if (typeof value !== 'string') return fallback;
+  const trimmed = value.trim();
+  return trimmed.slice(0, MAX_SIMULATE_FIELD_LENGTH) || fallback;
+}
+
+function normalizeSimulateBody(body = {}) {
+  const email = cleanSimulateValue(body.email, 'jane@example.com');
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!emailPattern.test(email)) {
+    const err = new Error('Email must be a valid email address');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  return {
+    name: cleanSimulateValue(body.name, 'Jane Doe'),
+    email,
+    company: cleanSimulateValue(body.company, 'Acme Corp'),
+    message: cleanSimulateValue(body.message, 'Interested in a demo.'),
+  };
+}
 
 /**
  * POST /webhooks/tally
@@ -25,7 +51,7 @@ async function handleTallyWebhook(req, res) {
   const submission = await Submission.create({
     ...parsed,
     overallStatus: 'processing',
-    destinations: [],
+    destinations: DESTINATIONS.map(destination => ({ destination, status: 'pending' })),
   });
 
   // Respond to Tally quickly — fanout runs in background
@@ -44,6 +70,7 @@ async function handleTallyWebhook(req, res) {
  */
 async function simulateSubmission(req, res) {
   const now = Date.now();
+  const input = normalizeSimulateBody(req.body);
   const synthetic = {
     eventId: `sim_${now}`,
     createdAt: new Date().toISOString(),
@@ -54,10 +81,10 @@ async function simulateSubmission(req, res) {
       formId: 'simulated_form',
       formName: 'Demo Form',
       fields: [
-        { key: 'name', label: 'Name', type: 'INPUT_TEXT', value: req.body.name || 'Jane Doe' },
-        { key: 'email', label: 'Email', type: 'INPUT_EMAIL', value: req.body.email || 'jane@example.com' },
-        { key: 'company', label: 'Company', type: 'INPUT_TEXT', value: req.body.company || 'Acme Corp' },
-        { key: 'message', label: 'Message', type: 'TEXTAREA', value: req.body.message || 'Interested in a demo.' },
+        { key: 'name', label: 'Name', type: 'INPUT_TEXT', value: input.name },
+        { key: 'email', label: 'Email', type: 'INPUT_EMAIL', value: input.email },
+        { key: 'company', label: 'Company', type: 'INPUT_TEXT', value: input.company },
+        { key: 'message', label: 'Message', type: 'TEXTAREA', value: input.message },
       ],
     },
   };
@@ -66,7 +93,7 @@ async function simulateSubmission(req, res) {
   const submission = await Submission.create({
     ...parsed,
     overallStatus: 'processing',
-    destinations: [],
+    destinations: DESTINATIONS.map(destination => ({ destination, status: 'pending' })),
     simulatedAt: new Date(),
   });
 

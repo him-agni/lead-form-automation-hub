@@ -40,6 +40,7 @@ cd ../client && npm install
 # 2. Configure
 cp .env.example server/.env   # fill in real keys — see docs/
 cp client/.env.example client/.env
+# set DASHBOARD_API_KEY and VITE_DASHBOARD_API_KEY to the same long random value
 
 # 3. Run (two terminals)
 cd server && npm run dev

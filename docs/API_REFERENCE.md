@@ -21,7 +21,7 @@ Receives a real Tally form submission. Requires the raw JSON body and a valid `t
 **Headers**
 ```
 Content-Type: application/json
-tally-signature: <hex HMAC-SHA256>
+tally-signature: <base64 HMAC-SHA256>
 ```
 
 **Response — `202 Accepted`**

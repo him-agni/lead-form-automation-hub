@@ -2,6 +2,9 @@
 
 Receives Tally form submissions via webhook and fans them out in parallel to Airtable, Discord, and Google Sheets — with per-destination retry and a live dashboard to watch it happen.
 
+<img width="1410" height="872" alt="image" src="https://github.com/user-attachments/assets/2f82daa5-3c71-4809-95c0-7a46c69814d8" />
+
+
 ```
 Tally form submission
         │

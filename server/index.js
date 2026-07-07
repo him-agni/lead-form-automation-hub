@@ -11,8 +11,45 @@ const { recoverProcessingSubmissions } = require('./services/fanoutService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+let mongoConnectionPromise;
 
 validateEnv();
+
+app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
+
+function connectMongo() {
+  if (mongoose.connection.readyState === 1) {
+    return Promise.resolve();
+  }
+
+  if (!mongoConnectionPromise) {
+    mongoConnectionPromise = mongoose
+      .connect(process.env.MONGODB_URI)
+      .then(() => {
+        console.log('[server] MongoDB connected');
+        return recoverProcessingSubmissions().catch(err =>
+          console.error('[server] Processing recovery failed:', err.message)
+        );
+      })
+      .catch(err => {
+        mongoConnectionPromise = null;
+        throw err;
+      });
+  }
+
+  return mongoConnectionPromise;
+}
+
+app.use(async (req, res, next) => {
+  if (req.path === '/health') return next();
+
+  try {
+    await connectMongo();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
 
@@ -26,22 +63,19 @@ app.use((req, res, next) => {
 app.use('/webhooks', webhookRoutes);
 app.use('/events', eventRoutes);
 
-app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
-
 app.use(errorHandler);
 
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('[server] MongoDB connected');
-    app.listen(PORT, () => {
-      console.log(`[server] Listening on http://localhost:${PORT}`);
-      recoverProcessingSubmissions().catch(err =>
-        console.error('[server] Processing recovery failed:', err.message)
-      );
+if (require.main === module) {
+  connectMongo()
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`[server] Listening on http://localhost:${PORT}`);
+      });
+    })
+    .catch(err => {
+      console.error('[server] MongoDB connection failed:', err.message);
+      process.exit(1);
     });
-  })
-  .catch(err => {
-    console.error('[server] MongoDB connection failed:', err.message);
-    process.exit(1);
-  });
+}
+
+module.exports = app;

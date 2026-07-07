@@ -15,6 +15,22 @@ let mongoConnectionPromise;
 
 validateEnv();
 
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+  'https://client-lime-alpha.vercel.app',
+].filter(Boolean);
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked origin: ${origin}`));
+  },
+}));
+
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 
 function connectMongo() {
@@ -50,8 +66,6 @@ app.use(async (req, res, next) => {
     next(err);
   }
 });
-
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
 
 // JSON body parsing for all non-webhook routes
 // (the webhook route uses express.raw() at the route level to preserve raw body for HMAC)
